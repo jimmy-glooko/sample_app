@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe "Authentication" do
-  subject {page }
+  subject { page }
 
   describe "signin" do
     before { visit signin_path }
@@ -11,6 +11,8 @@ describe "Authentication" do
 
       it { should have_content('Sign in') }
       it { should have_title('Sign in') }
+      it { should_not have_link('Profile') }
+      it { should_not have_link('Settings' )}
 
       describe "after visiting another page" do
         before { click_link "Home" }
@@ -70,6 +72,19 @@ describe "Authentication" do
           it { should have_title('Sign in') }
         end
       end
+
+      describe "in the Microposts controller" do
+
+        describe "submitting to the create action" do
+          before { post microposts_path }
+          specify { expect(response).to redirect_to(signin_path) }
+        end
+
+        describe "submitting to the destroy action" do
+          before { delete micropost_path(FactoryGirl.create(:micropost)) }
+          specify { expect(response).to redirect_to(signin_path) }
+        end
+      end
     end
 
     describe "as wrong user" do
@@ -98,6 +113,30 @@ describe "Authentication" do
       describe "submitting a DELETE request to the Users#destroy action" do
         before { delete user_path(user) }
         specify { expect(response).to redirect_to(root_url) }
+      end
+    end
+
+    describe "as signed-in user" do
+      let(:user) { FactoryGirl.create(:user) }
+      before { sign_in user }
+
+      describe "visiting sign up page" do
+        before { visit signup_path }
+        it { should_not have_content('Welcome to the Sample App') }
+      end
+
+      describe "in the Users controller" do
+        before { sign_in user, no_capybara: true }
+
+        describe "submitting GET request to Users#new action" do
+          before { get signup_path }
+          specify { expect(response).to redirect_to(root_url) }
+        end
+
+        describe "submitting POST request to Users#create action" do
+          before { post users_path(user) }
+          specify { expect(response).to redirect_to(root_url) }
+        end
       end
     end
   end
